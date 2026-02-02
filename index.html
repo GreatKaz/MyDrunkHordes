@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DrunkHordes</title>
+  <style>
+    :root { color-scheme: dark light; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0; padding: 24px;
+      background: #0b0f14;
+      color: #e8eef7;
+    }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 16px; font-weight: 700; }
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      resize: vertical;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.25);
+      color: #e8eef7;
+      outline: none;
+      line-height: 1.4;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    textarea:focus { border-color: rgba(112, 168, 255, 0.7); }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    @media (min-width: 840px) {
+      .grid { grid-template-columns: 1.15fr 0.85fr; }
+    }
+    .section-title { font-size: 13px; opacity: 0.9; margin: 0 0 8px; }
+    .lists {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.18);
+      user-select: none;
+    }
+    .check input { transform: scale(1.1); }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.18);
+    }
+    .slider-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    input[type="range"] { width: 100%; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.25);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    button {
+      cursor: pointer;
+      border: 0;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #5fb0ff, #8a5bff);
+      color: #0b0f14;
+    }
+    button:hover { filter: brightness(1.05); }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .muted { opacity: 0.8; font-size: 12px; }
+    .footer {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .smallbtn {
+      background: rgba(255,255,255,0.10);
+      color: #e8eef7;
+      border: 1px solid rgba(255,255,255,0.16);
+      font-weight: 600;
+    }
+    .smallbtn:hover { filter: brightness(1.08); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Transformateur de texte DrunkHordes</h1>
+
+    <div class="card">
+      <p class="section-title">Texte d’entrée</p>
+      <textarea id="inputText" placeholder="Colle/écris ton texte ici..."></textarea>
+
+      <div class="grid">
+        <div>
+          <p class="section-title">Listes utilisées (6)</p>
+          <div class="lists" id="listsBox"></div>
+        </div>
+
+        <div class="controls">
+          <div>
+            <p class="section-title">Intensité</p>
+            <div class="slider-row">
+              <span class="pill">léger</span>
+              <input id="intensity" type="range" min="0" max="2" step="1" value="1" />
+              <span class="pill">détruit</span>
+            </div>
+            <div class="row">
+              <span class="muted">Sélection :</span>
+              <span id="intensityLabel" class="pill">moyen</span>
+            </div>
+          </div>
+
+          <button id="transformBtn">Transformer</button>
+
+          <div class="footer">
+            <button id="copyBtn" class="smallbtn" type="button">Copier le résultat</button>
+            <span class="muted" id="stats"></span>
+          </div>
+        </div>
+      </div>
+
+      <p class="section-title" style="margin-top:14px;">Texte transformé</p>
+      <textarea id="outputText" readonly placeholder="Le résultat apparaîtra ici..."></textarea>
+    </div>
+  </div>
+
+  <script>
+    // ==============
+    // 1) TES 6 LISTES
+    // ==============
+    // Modifie librement : ajoute/retire des mots, change les thèmes, etc.
+const WORD_LISTS = [
+  {
+    id: "liste1",
+    label: "Douleur",
+    words: [
+      "...ggh..",
+      "tousse...",
+      "...argh..",
+      "..gnn..",
+      "... je...",
+      ".g...",
+      "grogne...",
+      "..Gn..",
+      "..raah..",
+      "....",
+      "RAAH !..",
+      "..le...",
+      "qu.. non..."
+    ]
+  },
+  {
+    id: "liste2",
+    label: "Folie",
+    words: [
+      ".. AH AH AH !...",
+      "..vais tous vous...",
+      "..les.. voix...",
+      ".gghhh...",
+      "NOOOoon !...",
+      "marmonne...",
+      "..hin hin...",
+      "ALLEZ VOUS EN !..",
+      "des araignées...",
+      "..ils sont partout...",
+      "..Lachez moi !..",
+      ".. Ah... Ah ah..",
+      ".. qui est là ?..",
+      "..rrRRR... RAAAAaah !",
+      ".r.tuer...",
+      "...ricane..",
+      "...",
+      "..Petiiit papaa Noo.. NOOOON !!...",
+      "et pirouette cacahuètes ...",
+      "..hein ?",
+      "..froid..",
+      "..ou bien...",
+      ".. Qu'est-ce que...",
+      "non ?.. Oui ?",
+      ". Pas du tout..",
+      ".. Laissez moi !",
+      "..Hi hi hi ! ...",
+      "grogne...",
+      "... Mon beau sapiiin ! ....",
+      ".. roule petit patapon ...",
+      "... toujours un beau temps au nord ...",
+      ".. Alouetteuuh gentiiil.. Hein ?..",
+      "car il y a longtemps que je t'aime...",
+      "mon ami Pierroooot",
+      "et ainsi font font FONT !! Ah !..."
+    ]
+  },
+  {
+    id: "liste3",
+    label: "Saoul",
+    words: [
+      "... ouais...",
+      "et euuh..",
+      "...",
+      ".. et je...",
+      "non...",
+      "... pis..",
+      ".. non attend..",
+      "et euh... là",
+      ".. pis alors...",
+      "non ?.. Oui ?",
+      "..Hi hi hi ! ...",
+      "... j'crois...",
+      ".gghhh...",
+      "..hin hin...",
+      "..Hé hé...",
+      "..hein ?",
+      "..ou bien...",
+      ".. Qu'est-ce que...",
+      "non ?.. Oui ?",
+      "... ou pas quoi...",
+      ".. enfin.. tu vois quoi...",
+      ".. ouais les gars...",
+      "voilà quoi...",
+      ".. et euh... j'disais quoi...",
+      "... parceque tu vois...",
+      "...",
+      "genre...",
+      "style...",
+      "et paf...",
+      "mais... euh..",
+      "* HIPS *...",
+      "... comment déjà...",
+      "arf.",
+      "... truc..",
+      "pfff...",
+      "...",
+      "...",
+      "...",
+      "..",
+      "..",
+      "... ..."
+    ]
+  },
+  {
+    id: "liste4",
+    label: "Mots aléatoires",
+    words: [
+      "zombie",
+      "cadavre",
+      "souffrances",
+      "atroce",
+      "pourriture",
+      "infection",
+      "putride",
+      "fantôme",
+      "horrible",
+      "immonde",
+      "monstre",
+      "tomate",
+      "poire",
+      "banane",
+      "pomme",
+      "tulipe",
+      "peur",
+      "avion",
+      "pépin",
+      "rigolo",
+      "fleur",
+      "youpi-banane",
+      "avion",
+      "polompolom",
+      "sapine",
+      "galinacée",
+      "canard",
+      "biloute",
+      "berlingot",
+      "patate",
+      "gourde",
+      "carotte",
+      "sapin",
+      "papa Noël",
+      "pelle",
+      "pouic",
+      "schtroumpfer",
+      "folie",
+      "abeille",
+      "patapon",
+      "lalala",
+      "manger",
+      "dévorer",
+      "broyer"
+    ]
+  },
+  {
+    id: "liste5",
+    label: "Saoul++",
+    words: [
+      "... le...",
+      "et euuh..",
+      ".. et je...",
+      ".. non...",
+      "... pis..",
+      ".. non attend..",
+      "et euh... là",
+      ".. pis alors...",
+      "... j'crois...",
+      ".t..T..Truc...",
+      "... la...",
+      "..hein ?..",
+      "..tu vois...",
+      "..ou bien...",
+      ".. un euh...",
+      ".. non ?.. hein ?",
+      "... ou pas...",
+      ".. enfin.. tu vois quoi...",
+      ".. bidule...",
+      ".. voilà quoi...",
+      ".. et euh... j'disais quoi...",
+      "... parceque tu vois...",
+      "genre...",
+      "style...",
+      ".. raaah bordel...",
+      ".. mais... euh..",
+      "HIPS...",
+      "... comment déjà...",
+      "arf.",
+      "... machin..",
+      "... le bazar là..",
+      ".. le truc là...",
+      "... truc..",
+      ".. genre...",
+      ".. rôte...",
+      ".. bordel..",
+      "euh...",
+      "huh...",
+      "..le bazar quoi...",
+      "... parceque.."
+    ]
+  },
+    {
+    id: "liste6",
+    label: "Graines d'Opti",
+    words: [
+      "la faute à... Botaire..",
+      "Mnemeoooo",
+      "Kiki",
+    ]
+  }
+];
+
+    // ==================================
+    // 2) REMPLACEMENTS (mots -> autres)
+    // ==================================
+    // Idée : certains mots du texte original doivent être remplacés.
+    // La clé est en minuscule ; le remplacement sera adapté à la casse.
+    const REPLACEMENTS = {
+      "je": "moi",
+      "tu": "toi",
+      "nous": "nous autres",
+      "vous": "vous là",
+      "oui": "ouais",
+      "non": "nan",
+      "bonjour": "salut",
+      "merci": "thx",
+      "désolé": "pardon",
+      "vraiment": "genre",
+      "très": "méga",
+      "petit": "mini",
+      "grand": "énorme",
+      "cool": "stylé",
+      "bien": "ok",
+      "mal": "pas ouf"
+    };
+
+    // =========================
+    // 3) PARAMÈTRES D'INTENSITÉ
+    // =========================
+    // Plus l'intensité est haute :
+    // - plus on remplace de mots
+    // - plus on insère des mots/expressions
+    // - plus on “abîme” légèrement la ponctuation
+    const INTENSITY_PRESETS = [
+      { name: "léger",  replaceRate: 0.25, insertPerSentence: [0, 1],  sprinklePunct: 0.08 },
+      { name: "moyen",  replaceRate: 0.55, insertPerSentence: [1, 2],  sprinklePunct: 0.16 },
+      { name: "détruit",replaceRate: 0.85, insertPerSentence: [2, 4],  sprinklePunct: 0.28 }
+    ];
+
+    // ============
+    // UI BUILD
+    // ============
+    const listsBox = document.getElementById("listsBox");
+    const intensity = document.getElementById("intensity");
+    const intensityLabel = document.getElementById("intensityLabel");
+    const inputText = document.getElementById("inputText");
+    const outputText = document.getElementById("outputText");
+    const stats = document.getElementById("stats");
+
+    function buildListsUI() {
+      listsBox.innerHTML = "";
+      WORD_LISTS.forEach((l, idx) => {
+        const wrap = document.createElement("label");
+        wrap.className = "check";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = true;
+        cb.id = l.id;
+
+        const span = document.createElement("span");
+        span.textContent = l.label;
+
+        wrap.appendChild(cb);
+        wrap.appendChild(span);
+        listsBox.appendChild(wrap);
+      });
+    }
+
+    function updateIntensityLabel() {
+      const preset = INTENSITY_PRESETS[Number(intensity.value)];
+      intensityLabel.textContent = preset.name;
+    }
+
+    buildListsUI();
+    updateIntensityLabel();
+    intensity.addEventListener("input", updateIntensityLabel);
+
+    // ============
+    // HELPERS
+    // ============
+    function randInt(min, max) { // inclusive
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function pick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function enabledWordPool() {
+      const pool = [];
+      WORD_LISTS.forEach(l => {
+        const cb = document.getElementById(l.id);
+        if (cb && cb.checked) pool.push(...l.words);
+      });
+      return pool;
+    }
+
+    function splitSentences(text) {
+      // Coupe de manière simple tout en gardant le séparateur
+      // Exemple: ["Salut", "!", " Comment ça va", "?", ...]
+      const parts = text.split(/([.!?]+|\n+)/g);
+      // Recombine en segments “phrase + séparateur”
+      const out = [];
+      for (let i = 0; i < parts.length; i += 2) {
+        const chunk = (parts[i] ?? "");
+        const sep = (parts[i+1] ?? "");
+        out.push(chunk + sep);
+      }
+      return out.filter(s => s.length > 0);
+    }
+
+    function tokenize(text) {
+      // Tokenisation légère : mots / espaces / ponctuation
+      // Permet de remplacer des "mots" en gardant la ponctuation.
+      return text.match(/[\p{L}\p{N}’']+|\s+|[^\s\p{L}\p{N}]+/gu) || [];
+    }
+
+    function applyCaseLike(source, target) {
+      // Adapte un remplacement à la casse du mot original.
+      if (source.toUpperCase() === source) return target.toUpperCase();
+      if (source[0] && source[0].toUpperCase() === source[0]) {
+        return target.charAt(0).toUpperCase() + target.slice(1);
+      }
+      return target;
+    }
+
+    function maybeReplaceToken(tok, replaceRate) {
+      // Remplace uniquement si token est un "mot"
+      if (!/^[\p{L}\p{N}’']+$/u.test(tok)) return tok;
+      const key = tok.toLowerCase();
+      if (!(key in REPLACEMENTS)) return tok;
+      if (Math.random() > replaceRate) return tok;
+      return applyCaseLike(tok, REPLACEMENTS[key]);
+    }
+
+    function sprinkleExtraPunct(text, chance) {
+      // Ajoute parfois un tic de ponctuation en fin de segment
+      if (Math.random() > chance) return text;
+      const tics = ["...", "!!", "?!", "—"];
+      const tic = pick(tics);
+      // Évite d’empiler 300 fois
+      if (text.trim().endsWith(tic)) return text;
+      return text.replace(/\s*$/, "") + " " + tic + " ";
+    }
+
+    function insertRandomWords(segment, pool, minMax) {
+      if (pool.length === 0) return segment;
+      const [minIns, maxIns] = minMax;
+      const count = randInt(minIns, maxIns);
+      if (count <= 0) return segment;
+
+      let out = segment;
+      for (let i = 0; i < count; i++) {
+        const w = pick(pool);
+        // insertion à un endroit “raisonnable” : après un espace, ou fin
+        const tokens = tokenize(out);
+        // indices où l'on peut insérer (entre tokens)
+        const insertPositions = [];
+        for (let k = 0; k <= tokens.length; k++) insertPositions.push(k);
+
+        const pos = pick(insertPositions);
+        tokens.splice(pos, 0, (pos === 0 ? "" : " ") + w + " ");
+        out = tokens.join("").replace(/\s{2,}/g, " ");
+      }
+      return out;
+    }
+
+    // ============
+    // MAIN TRANSFORM
+    // ============
+    function transformText(text) {
+      const preset = INTENSITY_PRESETS[Number(intensity.value)];
+      const pool = enabledWordPool();
+
+      const segments = splitSentences(text);
+      let replacedCount = 0;
+      let insertedCount = 0;
+
+      const transformed = segments.map(seg => {
+        // 1) remplacement mot à mot
+        const toks = tokenize(seg).map(tok => {
+          const before = tok;
+          const after = maybeReplaceToken(tok, preset.replaceRate);
+          if (after !== before) replacedCount++;
+          return after;
+        });
+
+        let rebuilt = toks.join("");
+
+        // 2) insertion de mots piochés dans les listes activées
+        const beforeInsert = rebuilt;
+        rebuilt = insertRandomWords(rebuilt, pool, preset.insertPerSentence);
+        if (rebuilt !== beforeInsert) {
+          // estimation : pas exact mais utile
+          insertedCount += 1;
+        }
+
+        // 3) ponctuation parasite légère
+        rebuilt = sprinkleExtraPunct(rebuilt, preset.sprinklePunct);
+
+        return rebuilt;
+      }).join("");
+
+      return { text: transformed.replace(/\s{2,}/g, " ").trim(), replacedCount, insertedCount };
+    }
+
+    // ============
+    // BUTTONS
+    // ============
+    document.getElementById("transformBtn").addEventListener("click", () => {
+      const src = inputText.value || "";
+      if (!src.trim()) {
+        outputText.value = "";
+        stats.textContent = "Entre du texte 🙂";
+        return;
+      }
+      const res = transformText(src);
+      outputText.value = res.text;
+      stats.textContent = `Remplacements: ${res.replacedCount} • Inserts: ${res.insertedCount}`;
+    });
+
+    document.getElementById("copyBtn").addEventListener("click", async () => {
+      const val = outputText.value || "";
+      if (!val.trim()) return;
+      try {
+        await navigator.clipboard.writeText(val);
+        stats.textContent = "Copié ✅";
+        setTimeout(() => stats.textContent = "", 1200);
+      } catch {
+        // fallback
+        outputText.focus();
+        outputText.select();
+        document.execCommand("copy");
+        stats.textContent = "Copié ✅";
+        setTimeout(() => stats.textContent = "", 1200);
+      }
+    });
+
+  </script>
+</body>
+</html>
